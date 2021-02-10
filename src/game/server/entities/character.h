@@ -5,7 +5,6 @@
 
 #include <engine/antibot.h>
 #include <game/server/entity.h>
-#include <game/server/save.h>
 
 class CAntibot;
 class CGameTeams;
@@ -26,8 +25,6 @@ class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
 
-	friend class CSaveTee; // need to use core
-
 public:
 	//character's size
 	static const int ms_PhysSize = 28;
@@ -44,7 +41,6 @@ public:
 	bool IsGrounded();
 
 	void SetWeapon(int W);
-	void SetSolo(bool Solo);
 	void HandleWeaponSwitch();
 	void DoWeaponSwitch();
 
@@ -101,6 +97,7 @@ private:
 
 	} m_aWeapons[NUM_WEAPONS];
 
+    int m_ActiveWeapon;
 	int m_LastWeapon;
 	int m_QueuedWeapon;
 
@@ -157,7 +154,6 @@ private:
 	// DDRace
 
 	void SnapCharacter(int SnappingClient, int ID);
-	static bool IsSwitchActiveCb(int Number, void *pUser);
 	void HandleTiles(int Index);
 	float m_Time;
 	int m_LastBroadcast;
@@ -172,7 +168,6 @@ private:
 	IAntibot *Antibot();
 
 	bool m_SetSavePos;
-	CSaveTee m_RescueTee;
 	bool m_Solo;
 
 public:
@@ -188,9 +183,6 @@ public:
 	void GiveAllWeapons();
 	void ResetPickups();
 	int m_DDRaceState;
-	int Team();
-	bool CanCollide(int ClientID);
-	bool SameTeam(int ClientID);
 	bool m_Super;
 	bool m_SuperJump;
 	bool m_Jetpack;

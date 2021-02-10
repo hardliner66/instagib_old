@@ -86,7 +86,7 @@ option(INFORM_UPDATE "Inform about available updates" ON)
 option(VIDEORECORDER "Enable video recording support via FFmpeg" OFF)
 option(UPNP "Enable UPnP support" OFF)
 option(ANTIBOT "Enable support for a dynamic anticheat library" OFF)
-option(CLIENT "Compile client" ON)
+option(CLIENT "Compile client" OFF)
 option(DOWNLOAD_GTEST "Download and compile GTest" ${AUTO_DEPENDENCIES_DEFAULT})
 option(STEAM "Build the Steam release version" OFF)
 option(DISCORD "Enable Discord rich presence support" OFF)
@@ -267,7 +267,7 @@ endfunction()
 
 function(set_own_rpath TARGET)
   if(NOT TARGET_OS STREQUAL "windows" AND NOT TARGET_OS STREQUAL "mac")
-    if(CMAKE_VERSION VERSION_GREATER 3.8 OR CMAKE_VERSION VERSION_EQUAL 3.8)
+    if(CMAKE_VERSION VERSION_GREATER 3.14 OR CMAKE_VERSION VERSION_EQUAL 3.14)
       set_property(TARGET ${TARGET} PROPERTY BUILD_RPATH "$ORIGIN")
     endif()
     set_property(TARGET ${TARGET} PROPERTY INSTALL_RPATH "$ORIGIN/../lib/ddnet")
@@ -1597,8 +1597,6 @@ set_src(GAME_SHARED GLOB src/game
   mapitems_ex_types.h
   prng.cpp
   prng.h
-  teamscore.cpp
-  teamscore.h
   tuning.h
   variables.h
   version.h
@@ -1984,22 +1982,12 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   ddracecommands.cpp
   entities/character.cpp
   entities/character.h
-  entities/door.cpp
-  entities/door.h
-  entities/dragger.cpp
-  entities/dragger.h
   entities/flag.cpp
   entities/flag.h
-  entities/gun.cpp
-  entities/gun.h
   entities/laser.cpp
   entities/laser.h
-  entities/light.cpp
-  entities/light.h
   entities/pickup.cpp
   entities/pickup.h
-  entities/plasma.cpp
-  entities/plasma.h
   entities/projectile.cpp
   entities/projectile.h
   entity.cpp
@@ -2010,19 +1998,13 @@ set_src(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontext.h
   gamecontroller.cpp
   gamecontroller.h
-  gamemodes/DDRace.cpp
-  gamemodes/DDRace.h
+  gamemodes/ctf.cpp
+  gamemodes/ctf.h
   gamemodes/gamemode.h
   gameworld.cpp
   gameworld.h
   player.cpp
   player.h
-  save.cpp
-  save.h
-  score.cpp
-  score.h
-  teams.cpp
-  teams.h
   teehistorian.cpp
   teehistorian.h
   teeinfo.cpp

@@ -45,6 +45,13 @@ public:
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
 	bool TestBox(vec2 Pos, vec2 Size);
 
+	enum
+	{
+		COLFLAG_SOLID=1,
+		COLFLAG_DEATH=2,
+		COLFLAG_NOHOOK=4,
+	};
+
 	// DDRace
 
 	void Dest();

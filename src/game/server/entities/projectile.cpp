@@ -3,12 +3,11 @@
 #include "projectile.h"
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamemodes/DDRace.h>
+#include <game/server/gamemodes/ctf.h>
 #include <game/server/player.h>
 #include <game/version.h>
 
 #include <engine/shared/config.h>
-#include <game/server/teams.h>
 
 #include "character.h"
 
@@ -127,20 +126,15 @@ void CProjectile::Tick()
 	if(m_LifeSpan > -1)
 		m_LifeSpan--;
 
-	int64 TeamMask = -1LL;
 	bool IsWeaponCollide = false;
 	if(
 		pOwnerChar &&
 		pTargetChr &&
 		pOwnerChar->IsAlive() &&
-		pTargetChr->IsAlive() &&
-		!pTargetChr->CanCollide(m_Owner))
+		pTargetChr->IsAlive())
 	{
+        // TODO: hardliner - this might need to be set to false in that case
 		IsWeaponCollide = true;
-	}
-	if(pOwnerChar && pOwnerChar->IsAlive())
-	{
-		TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
 	}
 	else if(m_Owner >= 0 && (m_Type != WEAPON_GRENADE || g_Config.m_SvDestroyBulletsOnDeath))
 	{
@@ -159,19 +153,9 @@ void CProjectile::Tick()
 			}
 			for(int i = 0; i < Number; i++)
 			{
-				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pTargetChr ? -1 : pTargetChr->Team()),
-					(m_Owner != -1) ? TeamMask : -1LL);
-				GameServer()->CreateSound(ColPos, m_SoundImpact,
-					(m_Owner != -1) ? TeamMask : -1LL);
+				GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, -1);
+				GameServer()->CreateSound(ColPos, m_SoundImpact);
 			}
-		}
-		else if(m_Freeze)
-		{
-			CCharacter *apEnts[MAX_CLIENTS];
-			int Num = GameWorld()->FindEntities(CurPos, 1.0f, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
-			for(int i = 0; i < Num; ++i)
-				if(apEnts[i] && (m_Layer != LAYER_SWITCH || (m_Layer == LAYER_SWITCH && m_Number > 0 && GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[apEnts[i]->Team()])))
-					apEnts[i]->Freeze();
 		}
 
 		if(pOwnerChar && !GameLayerClipped(ColPos) &&
@@ -231,7 +215,7 @@ void CProjectile::Tick()
 		}
 		else if(m_Type == WEAPON_GUN)
 		{
-			GameServer()->CreateDamageInd(CurPos, -atan2(m_Direction.x, m_Direction.y), 10, (m_Owner != -1) ? TeamMask : -1LL);
+			GameServer()->CreateDamageInd(CurPos, -atan2(m_Direction.x, m_Direction.y), 10);
 			GameServer()->m_World.DestroyEntity(this);
 			return;
 		}
@@ -251,33 +235,11 @@ void CProjectile::Tick()
 			if(m_Owner >= 0)
 				pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
-			int64 TeamMask = -1LL;
-			if(pOwnerChar && pOwnerChar->IsAlive())
-			{
-				TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
-			}
-
-			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, (!pOwnerChar ? -1 : pOwnerChar->Team()),
-				(m_Owner != -1) ? TeamMask : -1LL);
-			GameServer()->CreateSound(ColPos, m_SoundImpact,
-				(m_Owner != -1) ? TeamMask : -1LL);
+			GameServer()->CreateExplosion(ColPos, m_Owner, m_Type, m_Owner == -1, -1);
+			GameServer()->CreateSound(ColPos, m_SoundImpact);
 		}
 		GameServer()->m_World.DestroyEntity(this);
 		return;
-	}
-
-	int x = GameServer()->Collision()->GetIndex(PrevPos, CurPos);
-	int z;
-	if(g_Config.m_SvOldTeleportWeapons)
-		z = GameServer()->Collision()->IsTeleport(x);
-	else
-		z = GameServer()->Collision()->IsTeleportWeapon(x);
-	CGameControllerDDRace *pControllerDDRace = (CGameControllerDDRace *)GameServer()->m_pController;
-	if(z && pControllerDDRace->m_TeleOuts[z - 1].size())
-	{
-		int TeleOut = GameServer()->m_World.m_Core.RandomOr0(pControllerDDRace->m_TeleOuts[z - 1].size());
-		m_Pos = pControllerDDRace->m_TeleOuts[z - 1][TeleOut];
-		m_StartTick = Server()->Tick();
 	}
 }
 
@@ -303,22 +265,10 @@ void CProjectile::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
-	CCharacter *pSnapChar = GameServer()->GetPlayerChar(SnappingClient);
-	int Tick = (Server()->Tick() % Server()->TickSpeed()) % ((m_Explosive) ? 6 : 20);
-	if(pSnapChar && pSnapChar->IsAlive() && (m_Layer == LAYER_SWITCH && m_Number > 0 && !GameServer()->Collision()->m_pSwitchers[m_Number].m_Status[pSnapChar->Team()] && (!Tick)))
-		return;
-
 	CCharacter *pOwnerChar = 0;
-	int64 TeamMask = -1LL;
 
 	if(m_Owner >= 0)
 		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-
-	if(pOwnerChar && pOwnerChar->IsAlive())
-		TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
-
-	if(m_Owner != -1 && !CmaskIsSet(TeamMask, SnappingClient))
-		return;
 
 	int SnappingClientVersion = SnappingClient >= 0 ? GameServer()->GetClientVersion(SnappingClient) : CLIENT_VERSIONNR;
 

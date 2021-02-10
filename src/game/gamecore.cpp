@@ -56,13 +56,12 @@ float VelocityRamp(float Value, float Start, float Range, float Curvature)
 	return 1.0f / powf(Curvature, (Value - Start) / Range);
 }
 
-void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, CTeamsCore *pTeams, std::map<int, std::vector<vec2>> *pTeleOuts)
+void CCharacterCore::Init(CWorldCore *pWorld, CCollision *pCollision, std::map<int, std::vector<vec2>> *pTeleOuts)
 {
 	m_pWorld = pWorld;
 	m_pCollision = pCollision;
 	m_pTeleOuts = pTeleOuts;
 
-	m_pTeams = pTeams;
 	m_Id = -1;
 	Reset();
 }
@@ -110,7 +109,6 @@ void CCharacterCore::Reset()
 void CCharacterCore::Tick(bool UseInput)
 {
 	float PhysSize = 28.0f;
-	m_MoveRestrictions = m_pCollision->GetMoveRestrictions(UseInput ? IsSwitchActiveCb : 0, this, m_Pos);
 	m_TriggeredEvents = 0;
 
 	// get ground state
@@ -261,7 +259,7 @@ void CCharacterCore::Tick(bool UseInput)
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-				if(!pCharCore || pCharCore == this || (!(m_Super || pCharCore->m_Super) && ((m_Id != -1 && !m_pTeams->CanCollide(i, m_Id)) || pCharCore->m_Solo || m_Solo)))
+				if(!pCharCore || pCharCore == this || (!(m_Super || pCharCore->m_Super) && ((m_Id != -1) || pCharCore->m_Solo || m_Solo)))
 					continue;
 
 				vec2 ClosestPoint;
@@ -318,15 +316,10 @@ void CCharacterCore::Tick(bool UseInput)
 		if(m_HookedPlayer != -1)
 		{
 			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[m_HookedPlayer];
-			if(pCharCore && m_Id != -1 && m_pTeams->CanKeepHook(m_Id, pCharCore->m_Id))
-				m_HookPos = pCharCore->m_Pos;
-			else
-			{
 				// release hook
 				m_HookedPlayer = -1;
 				m_HookState = HOOK_RETRACTED;
 				m_HookPos = m_Pos;
-			}
 
 			// keep players hooked for a max of 1.5sec
 			//if(Server()->Tick() > hook_tick+(Server()->TickSpeed()*3)/2)
@@ -377,7 +370,7 @@ void CCharacterCore::Tick(bool UseInput)
 			//player *p = (player*)ent;
 			//if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
 
-			if(pCharCore == this || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, i)))
+			if(pCharCore == this || (m_Id != -1))
 				continue; // make sure that we don't nudge our self
 
 			if(!(m_Super || pCharCore->m_Super) && (m_Solo || pCharCore->m_Solo))
@@ -417,11 +410,11 @@ void CCharacterCore::Tick(bool UseInput)
 						// add force to the hooked player
 						Temp.x = SaturatedAdd(-DragSpeed, DragSpeed, pCharCore->m_Vel.x, Accel * Dir.x * 1.5f);
 						Temp.y = SaturatedAdd(-DragSpeed, DragSpeed, pCharCore->m_Vel.y, Accel * Dir.y * 1.5f);
-						pCharCore->m_Vel = ClampVel(pCharCore->m_MoveRestrictions, Temp);
+						pCharCore->m_Vel = Temp;
 						// add a little bit force to the guy who has the grip
 						Temp.x = SaturatedAdd(-DragSpeed, DragSpeed, m_Vel.x, -Accel * Dir.x * 0.25f);
 						Temp.y = SaturatedAdd(-DragSpeed, DragSpeed, m_Vel.y, -Accel * Dir.y * 0.25f);
-						m_Vel = ClampVel(m_MoveRestrictions, Temp);
+						m_Vel = Temp;
 					}
 				}
 			}
@@ -479,7 +472,7 @@ void CCharacterCore::Move()
 					CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
 					if(!pCharCore || pCharCore == this)
 						continue;
-					if((!(pCharCore->m_Super || m_Super) && (m_Solo || pCharCore->m_Solo || !pCharCore->m_Collision || pCharCore->m_NoCollision || (m_Id != -1 && !m_pTeams->CanCollide(m_Id, p)))))
+					if((!(pCharCore->m_Super || m_Super) && (m_Solo || pCharCore->m_Solo || !pCharCore->m_Collision || pCharCore->m_NoCollision || (m_Id != -1))))
 						continue;
 					float D = distance(Pos, pCharCore->m_Pos);
 					if(D < 28.0f && D >= 0.0f)
@@ -574,23 +567,3 @@ void CCharacterCore::Quantize()
 	Read(&Core);
 }
 
-// DDRace
-
-void CCharacterCore::SetTeamsCore(CTeamsCore *pTeams)
-{
-	m_pTeams = pTeams;
-}
-
-void CCharacterCore::SetTeleOuts(std::map<int, std::vector<vec2>> *pTeleOuts)
-{
-	m_pTeleOuts = pTeleOuts;
-}
-
-bool CCharacterCore::IsSwitchActiveCb(int Number, void *pUser)
-{
-	CCharacterCore *pThis = (CCharacterCore *)pUser;
-	if(pThis->Collision()->m_pSwitchers)
-		if(pThis->m_Id != -1 && pThis->m_pTeams->Team(pThis->m_Id) != (pThis->m_pTeams->m_IsDDRace16 ? VANILLA_TEAM_SUPER : TEAM_SUPER))
-			return pThis->Collision()->m_pSwitchers[Number].m_Status[pThis->m_pTeams->Team(pThis->m_Id)];
-	return false;
-}

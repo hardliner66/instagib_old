@@ -113,3 +113,7 @@ tags
 *.user
 *.vcxproj
 *.zip
+
+.cache/
+.ccls-cache/
+build

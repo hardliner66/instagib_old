@@ -15,7 +15,7 @@
 #include <base/tl/string.h>
 
 #include "eventhandler.h"
-//#include "gamecontroller.h"
+#include "gamecontroller.h"
 #include "gameworld.h"
 #include "teehistorian.h"
 
@@ -59,13 +59,11 @@ enum
 class CConfig;
 class CHeap;
 class CPlayer;
-class CScore;
 class IConsole;
 class IGameController;
 class IEngine;
 class IStorage;
 struct CAntibotData;
-struct CScoreRandomMapResult;
 
 class CGameContext : public IGameServer
 {
@@ -106,8 +104,6 @@ class CGameContext : public IGameServer
 	static void ConSwitchOpen(IConsole::IResult *pResult, void *pUserData);
 	static void ConPause(IConsole::IResult *pResult, void *pUserData);
 	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConRandomMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConRandomUnfinishedMap(IConsole::IResult *pResult, void *pUserData);
 	static void ConRestart(IConsole::IResult *pResult, void *pUserData);
 	static void ConBroadcast(IConsole::IResult *pResult, void *pUserData);
 	static void ConSay(IConsole::IResult *pResult, void *pUserData);
@@ -121,7 +117,7 @@ class CGameContext : public IGameServer
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConVoteNo(IConsole::IResult *pResult, void *pUserData);
 	static void ConDrySave(IConsole::IResult *pResult, void *pUserData);
-	static void ConDumpAntibot(IConsole::IResult *pResult, void *pUserData);
+	/* static void ConDumpAntibot(IConsole::IResult *pResult, void *pUserData); */
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	CGameContext(int Resetting);
@@ -196,7 +192,7 @@ public:
 
 	// helper functions
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int64 Mask = -1);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int64 Mask);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int64 Mask = -1);
 	void CreateHammerHit(vec2 Pos, int64 Mask = -1);
 	void CreatePlayerSpawn(vec2 Pos, int64 Mask = -1);
 	void CreateDeath(vec2 Pos, int Who, int64 Mask = -1);
@@ -219,7 +215,6 @@ public:
 	// network
 	void CallVote(int ClientID, const char *aDesc, const char *aCmd, const char *pReason, const char *aChatmsg, const char *pSixupDesc = 0);
 	void SendChatTarget(int To, const char *pText, int Flags = CHAT_SIX | CHAT_SIXUP);
-	void SendChatTeam(int Team, const char *pText);
 	void SendChat(int ClientID, int Team, const char *pText, int SpamProtectionClientID = -1, int Flags = CHAT_SIX | CHAT_SIXUP);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);
@@ -276,7 +271,6 @@ public:
 	void OnClientDDNetVersionKnown(int ClientID);
 	virtual void FillAntibot(CAntibotRoundData *pData);
 	int ProcessSpamProtection(int ClientID);
-	int GetDDRaceTeam(int ClientID);
 	// Describes the time when the first player joined the server.
 	int64 m_NonEmptySince;
 	int64 m_LastMapVote;
@@ -290,11 +284,8 @@ public:
 	bool RateLimitPlayerVote(int ClientID);
 	bool RateLimitPlayerMapVote(int ClientID);
 
-	std::shared_ptr<CScoreRandomMapResult> m_SqlRandomMapResult;
-
 private:
 	bool m_VoteWillPass;
-	class CScore *m_pScore;
 
 	//DDRace Console Commands
 
@@ -417,7 +408,7 @@ private:
 	CMute m_aVoteMutes[MAX_VOTE_MUTES];
 	int m_NumVoteMutes;
 	bool TryMute(const NETADDR *pAddr, int Secs, const char *pReason);
-	void Mute(const NETADDR *pAddr, int Secs, const char *pDisplayName, const char *pReason = "");
+	/* void Mute(const NETADDR *pAddr, int Secs, const char *pDisplayName, const char *pReason = ""); */
 	bool TryVoteMute(const NETADDR *pAddr, int Secs);
 	bool VoteMute(const NETADDR *pAddr, int Secs, const char *pDisplayName, int AuthedID);
 	bool VoteUnmute(const NETADDR *pAddr, const char *pDisplayName, int AuthedID);
@@ -429,7 +420,6 @@ private:
 
 public:
 	CLayers *Layers() { return &m_Layers; }
-	class CScore *Score() { return m_pScore; }
 
 	enum
 	{
@@ -448,7 +438,6 @@ public:
 	inline bool IsKickVote() const { return m_VoteType == VOTE_TYPE_KICK; };
 	inline bool IsSpecVote() const { return m_VoteType == VOTE_TYPE_SPECTATE; };
 
-	void SendRecord(int ClientID);
 	static void SendChatResponse(const char *pLine, void *pUser, bool Highlighted = false);
 	static void SendChatResponseAll(const char *pLine, void *pUser);
 	virtual void OnSetAuthed(int ClientID, int Level);

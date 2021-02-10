@@ -6,8 +6,10 @@
 #include "alloc.h"
 
 // this include should perhaps be removed
-#include "score.h"
 #include "teeinfo.h"
+
+#include "entities/character.h"
+#include "gamecontext.h"
 
 enum
 {
@@ -24,6 +26,8 @@ class CPlayer
 public:
 	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
 	~CPlayer();
+
+    void Init(int CID);
 
 	void Reset();
 
@@ -92,9 +96,11 @@ public:
 
 	CTeeInfo m_TeeInfos;
 
+    int m_RespawnTick;
 	int m_DieTick;
 	int m_PreviousDieTick;
 	int m_Score;
+    int m_ScoreStartTick;
 	int m_JoinTick;
 	bool m_ForceBalanced;
 	int m_LastActionTick;
@@ -176,7 +182,6 @@ public:
 	bool m_SpecTeam;
 	bool m_NinjaJetpack;
 	bool m_Afk;
-	bool m_HasFinishScore;
 
 	int m_ChatScore;
 
@@ -204,9 +209,6 @@ public:
 
 	bool m_FirstPacket;
 	int64 m_LastSQLQuery;
-	void ProcessScoreResult(CScorePlayerResult &Result);
-	std::shared_ptr<CScorePlayerResult> m_ScoreQueryResult;
-	std::shared_ptr<CScorePlayerResult> m_ScoreFinishResult;
 	bool m_NotEligibleForFinish;
 	int64 m_EligibleForFinishCheck;
 	bool m_VotedForPractice;

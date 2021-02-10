@@ -3,10 +3,9 @@
 #include "laser.h"
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
-#include <game/server/gamemodes/DDRace.h>
+#include <game/server/gamemodes/ctf.h>
 
 #include <engine/shared/config.h>
-#include <game/server/teams.h>
 
 #include "character.h"
 
@@ -25,7 +24,6 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_TeleportCancelled = false;
 	m_IsBlueTeleport = false;
 	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(m_Pos));
-	m_TeamMask = GameServer()->GetPlayerChar(Owner) ? GameServer()->GetPlayerChar(Owner)->Teams()->TeamMask(GameServer()->GetPlayerChar(Owner)->Team(), -1, m_Owner) : 0;
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }
@@ -34,42 +32,18 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CCharacter *pHit;
-	bool pDontHitSelf = g_Config.m_SvOldLaser || (m_Bounces == 0 && !m_WasTele);
-
-	if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) || (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN) && m_Type == WEAPON_SHOTGUN) : g_Config.m_SvHit)
-		pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner);
-	else
-		pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pDontHitSelf ? pOwnerChar : 0, m_Owner, pOwnerChar);
-
-	if(!pHit || (pHit == pOwnerChar && g_Config.m_SvOldLaser) || (pHit != pOwnerChar && pOwnerChar ? (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER && m_Type == WEAPON_LASER) || (pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_SHOTGUN && m_Type == WEAPON_SHOTGUN) : !g_Config.m_SvHit))
+	CCharacter *pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
+	if(!pHit)
 		return false;
+
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
-	if(m_Type == WEAPON_SHOTGUN)
-	{
-		vec2 Temp;
-
-		float Strength;
-		if(!m_TuneZone)
-			Strength = GameServer()->Tuning()->m_ShotgunStrength;
-		else
-			Strength = GameServer()->TuningList()[m_TuneZone].m_ShotgunStrength;
-
-		if(!g_Config.m_SvOldLaser)
-			Temp = pHit->Core()->m_Vel + normalize(m_PrevPos - pHit->Core()->m_Pos) * Strength;
-		else if(pOwnerChar)
-			Temp = pHit->Core()->m_Vel + normalize(pOwnerChar->Core()->m_Pos - pHit->Core()->m_Pos) * Strength;
-		else
-			Temp = pHit->Core()->m_Vel;
-		pHit->Core()->m_Vel = ClampVel(pHit->m_MoveRestrictions, Temp);
-	}
-	else if(m_Type == WEAPON_LASER)
-	{
-		pHit->UnFreeze();
-	}
-	return true;
+    if ((g_Config.m_SvWallshotOnly && m_Bounces) || !g_Config.m_SvWallshotOnly) {
+        /* pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE); */
+        pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_LASER);
+    }
+    return true;
 }
 
 void CLaser::DoBounce()
@@ -128,18 +102,8 @@ void CLaser::DoBounce()
 			else
 				m_Energy -= distance(m_From, m_Pos) + GameServer()->TuningList()[m_TuneZone].m_LaserBounceCost;
 
-			CGameControllerDDRace *pControllerDDRace = (CGameControllerDDRace *)GameServer()->m_pController;
-			if(Res == TILE_TELEINWEAPON && pControllerDDRace->m_TeleOuts[z - 1].size())
-			{
-				int TeleOut = GameServer()->m_World.m_Core.RandomOr0(pControllerDDRace->m_TeleOuts[z - 1].size());
-				m_TelePos = pControllerDDRace->m_TeleOuts[z - 1][TeleOut];
-				m_WasTele = true;
-			}
-			else
-			{
-				m_Bounces++;
-				m_WasTele = false;
-			}
+            m_Bounces++;
+            m_WasTele = false;
 
 			int BounceNum = GameServer()->Tuning()->m_LaserBounceNum;
 			if(m_TuneZone)
@@ -148,7 +112,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > BounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE, m_TeamMask);
+			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE);
 		}
 	}
 	else
@@ -265,16 +229,10 @@ void CLaser::Snap(int SnappingClient)
 		return;
 
 	CCharacter *pOwnerChar = 0;
-	int64 TeamMask = -1LL;
 
 	if(m_Owner >= 0)
 		pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 
-	if(pOwnerChar && pOwnerChar->IsAlive())
-		TeamMask = pOwnerChar->Teams()->TeamMask(pOwnerChar->Team(), -1, m_Owner);
-
-	if(!CmaskIsSet(TeamMask, SnappingClient))
-		return;
 	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
 	if(!pObj)
 		return;

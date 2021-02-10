@@ -1,6 +1,5 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
-/*
 #include "flag.h"
 #include <game/server/gamecontext.h>
 
@@ -44,4 +43,3 @@ void CFlag::Snap(int SnappingClient)
 	pFlag->m_Y = (int)m_Pos.y;
 	pFlag->m_Team = m_Team;
 }
-*/

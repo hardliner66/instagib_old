@@ -65,6 +65,8 @@ protected:
 	int m_GameOverTick;
 	int m_SuddenDeath;
 
+    int m_aTeamscore[2];
+
 	int m_Warmup;
 	int m_RoundCount;
 
@@ -74,6 +76,8 @@ protected:
 
 public:
 	const char *m_pGameType;
+    bool IsTeamplay() const;
+    bool IsGameOver() const { return m_GameOverTick != -1; }
 
 	IGameController(class CGameContext *pGameServer);
 	virtual ~IGameController();
@@ -120,6 +124,8 @@ public:
 	void OnReset();
 
 	// game
+    virtual void DoWincheck();
+
 	void DoWarmup(int Seconds);
 
 	void StartRound();
@@ -129,6 +135,7 @@ public:
 	bool IsFriendlyFire(int ClientID1, int ClientID2);
 
 	bool IsForceBalanced();
+    void PostReset();
 
 	/*
 
@@ -148,6 +155,7 @@ public:
 	*/
 	virtual const char *GetTeamName(int Team);
 	virtual int GetAutoTeam(int NotThisID);
+    bool CheckTeamBalance();
 	virtual bool CanJoinTeam(int Team, int NotThisID);
 	int ClampTeam(int Team);
 

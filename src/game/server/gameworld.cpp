@@ -187,18 +187,7 @@ void CGameWorld::UpdatePlayerMaps()
 				continue;
 			}
 			// copypasted chunk from character.cpp Snap() follows
-			CCharacter *SnapChar = GameServer()->GetPlayerChar(i);
-			if(SnapChar && !SnapChar->m_Super &&
-				!GameServer()->m_apPlayers[i]->IsPaused() && GameServer()->m_apPlayers[i]->GetTeam() != -1 &&
-				!ch->CanCollide(i) &&
-				(!GameServer()->m_apPlayers[i] ||
-					GameServer()->m_apPlayers[i]->GetClientVersion() == VERSION_VANILLA ||
-					(GameServer()->m_apPlayers[i]->GetClientVersion() >= VERSION_DDRACE &&
-						(GameServer()->m_apPlayers[i]->m_ShowOthers == 0 ||
-							(GameServer()->m_apPlayers[i]->m_ShowOthers == 2 && !GameServer()->m_apPlayers[i]->GetCharacter()->SameTeam(j))))))
-				Dist[j].first = 1e8;
-			else
-				Dist[j].first = 0;
+            Dist[j].first = 0;
 
 			Dist[j].first += distance(GameServer()->m_apPlayers[i]->m_ViewPos, GameServer()->m_apPlayers[j]->GetCharacter()->m_Pos);
 		}
@@ -316,7 +305,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 		if(pThisOnly && p != pThisOnly)
 			continue;
 
-		if(CollideWith != -1 && !p->CanCollide(CollideWith))
+		if(CollideWith != -1)
 			continue;
 
 		vec2 IntersectPos;
