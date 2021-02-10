@@ -36,32 +36,45 @@ void CCharacter::Reset()
 
 bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 {
-	m_EmoteStop = -1;
+    m_EmoteStop = -1;
 	m_LastAction = -1;
-	m_LastNoAmmoSound = -1;
-	m_LastWeapon = WEAPON_HAMMER;
-	m_QueuedWeapon = -1;
-	m_LastRefillJumps = false;
-	m_LastPenalty = false;
-	m_LastBonus = false;
 
-	m_TeleGunTeleport = false;
-	m_IsBlueTeleGunTeleport = false;
-	m_Solo = false;
+    /* if(GameServer()->m_pController->m_Flags&IGameController::GAMETYPE_GCTF) */
+    /* { */
+    /*     m_ActiveWeapon = WEAPON_GRENADE; */
+    /*     m_LastWeapon = WEAPON_GRENADE; */
+    /* } */
+    /* else */
+    /* { */
+    m_ActiveWeapon = WEAPON_LASER;
+    m_LastWeapon = WEAPON_LASER;
+    /* } */
+
+	m_LastNoAmmoSound = -1;
+	m_QueuedWeapon = -1;
 
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
 
-	mem_zero(&m_LatestPrevPrevInput, sizeof(m_LatestPrevPrevInput));
-	m_LatestPrevPrevInput.m_TargetY = -1;
-	m_SpawnTick = Server()->Tick();
-	m_WeaponChangeTick = Server()->Tick();
-	Antibot()->OnSpawn(m_pPlayer->GetCID());
+	/* for(int i = 0; i < NUM_WEAPONS-1; i++) */
+	/* 	if(m_pPlayer->m_KeepWeapon[i] == true) */
+	/* 		GiveWeapon(i, -1); */
+	/* if(m_pPlayer->m_KeepAward) */
+	/* 	m_pPlayer->m_GotAward = true; */
+
+	/* if(g_Config.m_SvSpawnprotection) */
+	/* 	m_SpawnProtectTick = Server()->Tick() + Server()->TickSpeed()*g_Config.m_SvSpawnprotection; */
+
+	/* if(m_pPlayer->m_FreezeOnSpawn) */
+	/* { */
+	/* 	Freeze(g_Config.m_SvIFreezeAutomeltTime); */
+	/* 	m_pPlayer->m_FreezeOnSpawn = false; */
+	/* } */
 
 	m_Core.Reset();
 	m_Core.Init(&GameServer()->m_World.m_Core, GameServer()->Collision());
-	m_Core.m_ActiveWeapon = WEAPON_LASER;
 	m_Core.m_Pos = m_Pos;
+    m_Core.m_ActiveWeapon = WEAPON_LASER;
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
 
 	m_ReckoningTick = 0;
@@ -72,16 +85,6 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_Alive = true;
 
 	GameServer()->m_pController->OnCharacterSpawn(this);
-
-	DDRaceInit();
-
-	m_TuneZone = GameServer()->Collision()->IsTune(GameServer()->Collision()->GetMapIndex(Pos));
-	m_TuneZoneOld = -1; // no zone leave msg on spawn
-	m_NeededFaketuning = 0; // reset fake tunings on respawn and send the client
-	SendZoneMsgs(); // we want a entermessage also on spawn
-	GameServer()->SendTuningParams(m_pPlayer->GetCID(), m_TuneZone);
-
-	Server()->StartRecord(m_pPlayer->GetCID());
 
 	return true;
 }
@@ -326,16 +329,6 @@ void CCharacter::FireWeapon()
 	bool FullAuto = false;
 	if(m_Core.m_ActiveWeapon == WEAPON_GRENADE || m_Core.m_ActiveWeapon == WEAPON_SHOTGUN || m_Core.m_ActiveWeapon == WEAPON_LASER)
 		FullAuto = true;
-	if(m_Jetpack && m_Core.m_ActiveWeapon == WEAPON_GUN)
-		FullAuto = true;
-	// allow firing directly after coming out of freeze or being unfrozen
-	// by something
-	if(m_FrozenLastTick)
-		FullAuto = true;
-
-	// don't fire hammer when player is deep and sv_deepfly is disabled
-	if(!g_Config.m_SvDeepfly && m_Core.m_ActiveWeapon == WEAPON_HAMMER && m_DeepFreeze)
-		return;
 
 	// check if we gonna fire
 	bool WillFire = false;
@@ -348,24 +341,18 @@ void CCharacter::FireWeapon()
 	if(!WillFire)
 		return;
 
-	if(m_FreezeTime)
-	{
-		// Timer stuff to avoid shrieking orchestra caused by unfreeze-plasma
-		if(m_PainSoundTimer <= 0 && !(m_LatestPrevInput.m_Fire & 1))
-		{
-			m_PainSoundTimer = 1 * Server()->TickSpeed();
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG);
-		}
-		return;
-	}
-
 	// check for ammo
 	if(!m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo)
 	{
-		/*// 125ms is a magical limit of how fast a human can click
+        // 125ms is a magical limit of how fast a human can click
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
-		GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);*/
+		if(m_LastNoAmmoSound+Server()->TickSpeed() <= Server()->Tick())
+		{
+			GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO);
+			m_LastNoAmmoSound = Server()->Tick();
+		}
 		return;
+
 	}
 
 	vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
@@ -578,8 +565,8 @@ void CCharacter::FireWeapon()
 
 	m_AttackTick = Server()->Tick();
 
-	/*if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
-		m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo--;*/
+	if(m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
+		m_aWeapons[m_Core.m_ActiveWeapon].m_Ammo--;
 
 	if(!m_ReloadTimer)
 	{
@@ -892,9 +879,8 @@ bool CCharacter::IncreaseArmor(int Amount)
 
 void CCharacter::Die(int Killer, int Weapon)
 {
-	if(Server()->IsRecording(m_pPlayer->GetCID()))
-		Server()->StopRecord(m_pPlayer->GetCID());
-
+    // we got to wait 0.5 secs before respawning
+	m_pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
 	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	char aBuf[256];
@@ -902,6 +888,16 @@ void CCharacter::Die(int Killer, int Weapon)
 		Killer, Server()->ClientName(Killer),
 		m_pPlayer->GetCID(), Server()->ClientName(m_pPlayer->GetCID()), Weapon, ModeSpecial);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	/* if(GameServer()->m_pController->IsInstagib()) */
+	/* { */
+		/* if(GameServer()->GetPlayerChar(Killer) && Killer != m_pPlayer->GetCID()) */
+		/* 	GameServer()->GetPlayerChar(Killer)->AddSpree(); */
+		/* EndSpree(Killer); */
+	/* } */
+	/* m_pPlayer->m_Stats.m_Deaths++; */
+	/* if(GameServer()->m_apPlayers[Killer] && Killer != m_pPlayer->GetCID()) */
+	/* 	GameServer()->m_apPlayers[Killer]->m_Stats.m_Kills++; */
 
 	// send the kill message
 	CNetMsg_Sv_KillMsg Msg;
@@ -914,13 +910,10 @@ void CCharacter::Die(int Killer, int Weapon)
 	// a nice sound
 	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE);
 
-	// this is to rate limit respawning to 3 secs
-	m_pPlayer->m_PreviousDieTick = m_pPlayer->m_DieTick;
+	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	m_Alive = false;
-	m_Solo = false;
-
 	GameServer()->m_World.RemoveEntity(this);
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());

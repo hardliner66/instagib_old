@@ -23,10 +23,10 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, int Layer, int N
 
 void CPickup::Reset()
 {
-	/*if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
-		m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
-	else
-		m_SpawnTick = -1;*/
+	/* if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0) */
+	/* 	m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay; */
+	/* else */
+	/* 	m_SpawnTick = -1; */
 }
 
 void CPickup::Tick()
@@ -81,8 +81,8 @@ void CPickup::Tick()
 					pChr->SetLastWeapon(WEAPON_GUN);
 					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR);
 				}
-				if(pChr->GetActiveWeapon() >= WEAPON_SHOTGUN)
-					pChr->SetActiveWeapon(WEAPON_HAMMER);
+				/* if(pChr->GetActiveWeapon() >= WEAPON_SHOTGUN) */
+				/* 	pChr->SetActiveWeapon(WEAPON_HAMMER); */
 				break;
 
 			case POWERUP_WEAPON:

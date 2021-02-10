@@ -222,26 +222,25 @@ void CPlayer::Tick()
 
 	if(!GameServer()->m_World.m_Paused)
 	{
-		int EarliestRespawnTick = m_PreviousDieTick + Server()->TickSpeed() * 3;
-		int RespawnTick = maximum(m_DieTick, EarliestRespawnTick) + 2;
-		if(!m_pCharacter && RespawnTick <= Server()->Tick())
+        if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_SpectatorID == SPEC_FREEVIEW)
+			m_ViewPos -= vec2(clamp(m_ViewPos.x-m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y-m_LatestActivity.m_TargetY, -400.0f, 400.0f));
+
+		if(!m_pCharacter && m_DieTick+Server()->TickSpeed()*3 <= Server()->Tick())
 			m_Spawning = true;
 
 		if(m_pCharacter)
 		{
 			if(m_pCharacter->IsAlive())
 			{
-				ProcessPause();
-				if(!m_Paused)
-					m_ViewPos = m_pCharacter->m_Pos;
+				m_ViewPos = m_pCharacter->m_Pos;
 			}
-			else if(!m_pCharacter->IsPaused())
+			else
 			{
 				delete m_pCharacter;
 				m_pCharacter = 0;
 			}
 		}
-		else if(m_Spawning && !m_WeakHookSpawn)
+		else if(m_Spawning && m_RespawnTick <= Server()->Tick())
 			TryRespawn();
 	}
 	else
@@ -602,6 +601,18 @@ CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 
 void CPlayer::SetTeam(int Team, bool DoChatMsg)
 {
+    // clamp the team
+	Team = GameServer()->m_pController->ClampTeam(Team);
+	if(m_Team == Team)
+		return;
+
+	char aBuf[512];
+	if(DoChatMsg)
+	{
+		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
+		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+	}
+
 	KillCharacter();
 
 	m_Team = Team;
@@ -610,7 +621,6 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	m_SpectatorID = SPEC_FREEVIEW;
     // we got to wait 0.5 secs before respawning
 	m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
-    char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' m_Team=%d", m_ClientID, Server()->ClientName(m_ClientID), m_Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 

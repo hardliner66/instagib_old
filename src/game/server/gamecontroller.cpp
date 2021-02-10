@@ -160,9 +160,25 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 	if(Team == TEAM_SPECTATORS)
 		return false;
 
-	EvaluateSpawnType(&Eval, 0);
-	EvaluateSpawnType(&Eval, 1);
-	EvaluateSpawnType(&Eval, 2);
+    if(IsTeamplay())
+	{
+		Eval.m_FriendlyTeam = Team;
+
+		// first try own team spawn, then normal spawn and then enemy
+		EvaluateSpawnType(&Eval, 1+(Team&1));
+		if(!Eval.m_Got)
+		{
+			EvaluateSpawnType(&Eval, 0);
+			if(!Eval.m_Got)
+				EvaluateSpawnType(&Eval, 1+((Team+1)&1));
+		}
+	}
+	else
+	{
+		EvaluateSpawnType(&Eval, 0);
+		EvaluateSpawnType(&Eval, 1);
+		EvaluateSpawnType(&Eval, 2);
+	}
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
@@ -334,6 +350,32 @@ void IGameController::OnReset()
 
 int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
+    	// do scoreing
+	if(!pKiller || Weapon == WEAPON_GAME)
+		return 0;
+	if(pKiller == pVictim->GetPlayer())
+	{
+		pVictim->GetPlayer()->m_Score--; // suicide
+		/* if(g_Config.m_SvLoltextShow) */
+		/* 	GameServer()->CreateLolText(pKiller->GetCharacter(), "-1"); */
+	}
+	else
+	{
+		if(IsTeamplay() && pVictim->GetPlayer()->GetTeam() == pKiller->GetTeam())
+		{
+			pKiller->m_Score--; // teamkill
+			/* if(g_Config.m_SvLoltextShow) */
+			/* 	GameServer()->CreateLolText(pKiller->GetCharacter(), "-1"); */
+		}
+		else
+		{
+			pKiller->m_Score++; // normal kill
+			/* if(g_Config.m_SvLoltextShow) */
+			/* 	GameServer()->CreateLolText(pKiller->GetCharacter(), "+1"); */
+		}
+	}
+	if(Weapon == WEAPON_SELF)
+		pVictim->GetPlayer()->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()*3.0f;
 	return 0;
 }
 
