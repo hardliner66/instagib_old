@@ -646,80 +646,84 @@ void IGameController::Snap(int SnappingClient)
 	pGameInfoObj->m_RoundStartTick = m_RoundStartTick;
 	pGameInfoObj->m_WarmupTimer = m_Warmup;
 
+    pGameInfoObj->m_ScoreLimit = g_Config.m_SvScorelimit;
+	pGameInfoObj->m_TimeLimit = g_Config.m_SvTimelimit;
+
+
 	pGameInfoObj->m_RoundNum = 0;
 	pGameInfoObj->m_RoundCurrent = m_RoundCount + 1;
 
-	CCharacter *pChr;
-	CPlayer *pPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0;
-	CPlayer *pPlayer2;
+	/* CCharacter *pChr; */
+	/* CPlayer *pPlayer = SnappingClient > -1 ? GameServer()->m_apPlayers[SnappingClient] : 0; */
+	/* CPlayer *pPlayer2; */
 
-	if(pPlayer && (pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER || pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && pPlayer->GetClientVersion() >= VERSION_DDNET_GAMETICK)
-	{
-		if((pPlayer->GetTeam() == -1 || pPlayer->IsPaused()) && pPlayer->m_SpectatorID != SPEC_FREEVIEW && (pPlayer2 = GameServer()->m_apPlayers[pPlayer->m_SpectatorID]))
-		{
-			if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
-			{
-				pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
-				pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
-			}
-		}
-		else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED)
-		{
-			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime;
-			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME;
-		}
-	}
+	/* if(pPlayer && (pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER || pPlayer->m_TimerType == CPlayer::TIMERTYPE_GAMETIMER_AND_BROADCAST) && pPlayer->GetClientVersion() >= VERSION_DDNET_GAMETICK) */
+	/* { */
+	/* 	if((pPlayer->GetTeam() == -1 || pPlayer->IsPaused()) && pPlayer->m_SpectatorID != SPEC_FREEVIEW && (pPlayer2 = GameServer()->m_apPlayers[pPlayer->m_SpectatorID])) */
+	/* 	{ */
+	/* 		if((pChr = pPlayer2->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED) */
+	/* 		{ */
+	/* 			pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime; */
+	/* 			pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME; */
+	/* 		} */
+	/* 	} */
+	/* 	else if((pChr = pPlayer->GetCharacter()) && pChr->m_DDRaceState == DDRACE_STARTED) */
+	/* 	{ */
+	/* 		pGameInfoObj->m_WarmupTimer = -pChr->m_StartTime; */
+	/* 		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_RACETIME; */
+	/* 	} */
+	/* } */
 
-	CNetObj_GameInfoEx *pGameInfoEx = (CNetObj_GameInfoEx *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFOEX, 0, sizeof(CNetObj_GameInfoEx));
-	if(!pGameInfoEx)
-		return;
+	/* CNetObj_GameInfoEx *pGameInfoEx = (CNetObj_GameInfoEx *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFOEX, 0, sizeof(CNetObj_GameInfoEx)); */
+	/* if(!pGameInfoEx) */
+	/* 	return; */
 
-	pGameInfoEx->m_Flags =
-		GAMEINFOFLAG_TIMESCORE |
-		GAMEINFOFLAG_GAMETYPE_RACE |
-		GAMEINFOFLAG_GAMETYPE_DDRACE |
-		GAMEINFOFLAG_GAMETYPE_DDNET |
-		GAMEINFOFLAG_UNLIMITED_AMMO |
-		GAMEINFOFLAG_RACE_RECORD_MESSAGE |
-		GAMEINFOFLAG_ALLOW_EYE_WHEEL |
-		GAMEINFOFLAG_ALLOW_HOOK_COLL |
-		GAMEINFOFLAG_ALLOW_ZOOM |
-		GAMEINFOFLAG_BUG_DDRACE_GHOST |
-		GAMEINFOFLAG_BUG_DDRACE_INPUT |
-		GAMEINFOFLAG_PREDICT_DDRACE |
-		GAMEINFOFLAG_PREDICT_DDRACE_TILES |
-		GAMEINFOFLAG_ENTITIES_DDNET |
-		GAMEINFOFLAG_ENTITIES_DDRACE |
-		GAMEINFOFLAG_ENTITIES_RACE |
-		GAMEINFOFLAG_RACE;
-	pGameInfoEx->m_Flags2 = 0;
-	pGameInfoEx->m_Version = GAMEINFO_CURVERSION;
+	/* pGameInfoEx->m_Flags = */
+	/* 	GAMEINFOFLAG_TIMESCORE | */
+	/* 	GAMEINFOFLAG_GAMETYPE_RACE | */
+	/* 	GAMEINFOFLAG_GAMETYPE_DDRACE | */
+	/* 	GAMEINFOFLAG_GAMETYPE_DDNET | */
+	/* 	GAMEINFOFLAG_UNLIMITED_AMMO | */
+	/* 	GAMEINFOFLAG_RACE_RECORD_MESSAGE | */
+	/* 	GAMEINFOFLAG_ALLOW_EYE_WHEEL | */
+	/* 	GAMEINFOFLAG_ALLOW_HOOK_COLL | */
+	/* 	GAMEINFOFLAG_ALLOW_ZOOM | */
+	/* 	GAMEINFOFLAG_BUG_DDRACE_GHOST | */
+	/* 	GAMEINFOFLAG_BUG_DDRACE_INPUT | */
+	/* 	GAMEINFOFLAG_PREDICT_DDRACE | */
+	/* 	GAMEINFOFLAG_PREDICT_DDRACE_TILES | */
+	/* 	GAMEINFOFLAG_ENTITIES_DDNET | */
+	/* 	GAMEINFOFLAG_ENTITIES_DDRACE | */
+	/* 	GAMEINFOFLAG_ENTITIES_RACE | */
+	/* 	GAMEINFOFLAG_RACE; */
+	/* pGameInfoEx->m_Flags2 = 0; */
+	/* pGameInfoEx->m_Version = GAMEINFO_CURVERSION; */
 
-	if(Server()->IsSixup(SnappingClient))
-	{
-		protocol7::CNetObj_GameData *pGameData = static_cast<protocol7::CNetObj_GameData *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATA, 0, sizeof(protocol7::CNetObj_GameData)));
-		if(!pGameData)
-			return;
+	/* if(Server()->IsSixup(SnappingClient)) */
+	/* { */
+	/* 	protocol7::CNetObj_GameData *pGameData = static_cast<protocol7::CNetObj_GameData *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATA, 0, sizeof(protocol7::CNetObj_GameData))); */
+	/* 	if(!pGameData) */
+	/* 		return; */
 
-		pGameData->m_GameStartTick = m_RoundStartTick;
-		pGameData->m_GameStateFlags = 0;
-		if(m_GameOverTick != -1)
-			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_GAMEOVER;
-		if(m_SuddenDeath)
-			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH;
-		if(GameServer()->m_World.m_Paused)
-			pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_PAUSED;
+	/* 	pGameData->m_GameStartTick = m_RoundStartTick; */
+	/* 	pGameData->m_GameStateFlags = 0; */
+	/* 	if(m_GameOverTick != -1) */
+	/* 		pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_GAMEOVER; */
+	/* 	if(m_SuddenDeath) */
+	/* 		pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_SUDDENDEATH; */
+	/* 	if(GameServer()->m_World.m_Paused) */
+	/* 		pGameData->m_GameStateFlags |= protocol7::GAMESTATEFLAG_PAUSED; */
 
-		pGameData->m_GameStateEndTick = 0;
+	/* 	pGameData->m_GameStateEndTick = 0; */
 
-		protocol7::CNetObj_GameDataRace *pRaceData = static_cast<protocol7::CNetObj_GameDataRace *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATARACE, 0, sizeof(protocol7::CNetObj_GameDataRace)));
-		if(!pRaceData)
-			return;
+	/* 	protocol7::CNetObj_GameDataRace *pRaceData = static_cast<protocol7::CNetObj_GameDataRace *>(Server()->SnapNewItem(-protocol7::NETOBJTYPE_GAMEDATARACE, 0, sizeof(protocol7::CNetObj_GameDataRace))); */
+	/* 	if(!pRaceData) */
+	/* 		return; */
 
-		pRaceData->m_BestTime = round_to_int(m_CurrentRecord * 1000);
-		pRaceData->m_Precision = 0;
-		pRaceData->m_RaceFlags = protocol7::RACEFLAG_HIDE_KILLMSG | protocol7::RACEFLAG_KEEP_WANTED_WEAPON;
-	}
+	/* 	pRaceData->m_BestTime = round_to_int(m_CurrentRecord * 1000); */
+	/* 	pRaceData->m_Precision = 0; */
+	/* 	pRaceData->m_RaceFlags = protocol7::RACEFLAG_HIDE_KILLMSG | protocol7::RACEFLAG_KEEP_WANTED_WEAPON; */
+	/* } */
 }
 
 int IGameController::GetAutoTeam(int NotThisID)
