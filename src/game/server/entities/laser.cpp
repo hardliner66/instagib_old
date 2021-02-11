@@ -133,7 +133,7 @@ void CLaser::DoBounce()
 		bool Found = false;
 
 		// Check if the laser hits a player.
-		bool pDontHitSelf = g_Config.m_SvOldLaser || (m_Bounces == 0 && !m_WasTele);
+		bool pDontHitSelf = m_Bounces == 0 && !m_WasTele;
 		vec2 At;
 		CCharacter *pHit;
 		if(pOwnerChar ? (!(pOwnerChar->m_Hit & CCharacter::DISABLE_HIT_LASER) && m_Type == WEAPON_LASER) : g_Config.m_SvHit)

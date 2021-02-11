@@ -315,18 +315,17 @@ void CCharacterCore::Tick(bool UseInput)
 	{
 		if(m_HookedPlayer != -1)
 		{
-			CCharacterCore *pCharCore = m_pWorld->m_apCharacters[m_HookedPlayer];
-				// release hook
-				m_HookedPlayer = -1;
-				m_HookState = HOOK_RETRACTED;
-				m_HookPos = m_Pos;
+            // release hook
+            m_HookedPlayer = -1;
+            m_HookState = HOOK_RETRACTED;
+            m_HookPos = m_Pos;
 
 			// keep players hooked for a max of 1.5sec
 			//if(Server()->Tick() > hook_tick+(Server()->TickSpeed()*3)/2)
 			//release_hooked();
 		}
 
-		// don't do this hook rutine when we are hook to a player
+		// don't do this hook routine when we are hook to a player
 		if(m_HookedPlayer == -1 && distance(m_HookPos, m_Pos) > 46.0f)
 		{
 			vec2 HookVel = normalize(m_HookPos - m_Pos) * m_pWorld->m_Tuning[g_Config.m_ClDummy].m_HookDragAccel;

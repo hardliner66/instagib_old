@@ -805,22 +805,6 @@ void CCharacter::TickDefered()
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 	}
 
-	{
-		int Events = m_Core.m_TriggeredEvents;
-
-		if(Events & COREEVENT_GROUND_JUMP)
-			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP);
-
-		if(Events & COREEVENT_HOOK_ATTACH_PLAYER)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER);
-
-		if(Events & COREEVENT_HOOK_ATTACH_GROUND)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND);
-
-		if(Events & COREEVENT_HOOK_HIT_NOHOOK)
-			GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH);
-	}
-
 	if(m_pPlayer->GetTeam() == TEAM_SPECTATORS)
 	{
 		m_Pos.x = m_Input.m_TargetX;
@@ -1438,7 +1422,6 @@ void CCharacter::HandleTiles(int Index)
 		m_LastBonus = false;
 		return;
 	}
-	int cpf = GameServer()->Collision()->IsFCheckpoint(MapIndex);
 	int tcp = GameServer()->Collision()->IsTCheckpoint(MapIndex);
 	if(tcp)
 		m_TeleCheckpoint = tcp;

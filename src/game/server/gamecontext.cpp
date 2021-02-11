@@ -213,7 +213,6 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	float Radius = 135.0f;
 	float InnerRadius = 48.0f;
 	int Num = m_World.FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
-	int64 TeamMask = -1;
 	for(int i = 0; i < Num; i++)
 	{
 		vec2 Diff = apEnts[i]->m_Pos - Pos;
@@ -2023,18 +2022,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(pPlayer->GetTeam() == pMsg->m_Team || (g_Config.m_SvSpamprotection && pPlayer->m_LastSetTeam && pPlayer->m_LastSetTeam + Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick()))
 				return;
 
-			//Kill Protection
-			CCharacter *pChr = pPlayer->GetCharacter();
-			if(pChr)
-			{
-				int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
-				if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
-				{
-					SendChatTarget(ClientID, "Kill Protection enabled. If you really want to join the spectators, first type /kill");
-					return;
-				}
-			}
-
 			if(pPlayer->m_TeamChangeTick > Server()->Tick())
 			{
 				pPlayer->m_LastSetTeam = Server()->Tick();
@@ -2284,14 +2271,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			CCharacter *pChr = pPlayer->GetCharacter();
 			if(!pChr)
 				return;
-
-			//Kill Protection
-			int CurrTime = (Server()->Tick() - pChr->m_StartTime) / Server()->TickSpeed();
-			if(g_Config.m_SvKillProtection != 0 && CurrTime >= (60 * g_Config.m_SvKillProtection) && pChr->m_DDRaceState == DDRACE_STARTED)
-			{
-				SendChatTarget(ClientID, "Kill Protection enabled. If you really want to kill, type /kill");
-				return;
-			}
 
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
@@ -3050,11 +3029,9 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	{
 		g_Config.m_SvHit = 1;
 		g_Config.m_SvEndlessDrag = 0;
-		g_Config.m_SvOldLaser = 0;
 		g_Config.m_SvOldTeleportHook = 0;
 		g_Config.m_SvOldTeleportWeapons = 0;
 		g_Config.m_SvTeleportHoldHook = 0;
-		g_Config.m_SvTeam = 1;
 		g_Config.m_SvShowOthersDefault = 0;
 
 		if(Collision()->m_NumSwitchers > 0)
@@ -3067,21 +3044,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	LoadMapSettings();
 
 	m_MapBugs.Dump();
-
-	if(g_Config.m_SvSoloServer)
-	{
-		g_Config.m_SvTeam = 3;
-		g_Config.m_SvShowOthersDefault = 1;
-
-		Tuning()->Set("player_collision", 0);
-		Tuning()->Set("player_hooking", 0);
-
-		for(int i = 0; i < NUM_TUNEZONES; i++)
-		{
-			TuningList()[i].Set("player_collision", 0);
-			TuningList()[i].Set("player_hooking", 0);
-		}
-	}
 
 	m_pController = new CGameControllerCtf(this);
 
@@ -3186,12 +3148,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		{
 			int Index = pTiles[y * pTileMap->m_Width + x].m_Index;
 
-			if(Index == TILE_OLDLASER)
-			{
-				g_Config.m_SvOldLaser = 1;
-				dbg_msg("game_layer", "found old laser tile");
-			}
-			else if(Index == TILE_NPC)
+			if(Index == TILE_NPC)
 			{
 				m_Tuning.Set("player_collision", 0);
 				dbg_msg("game_layer", "found no collision tile");
@@ -3222,12 +3179,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 			if(pFront)
 			{
 				Index = pFront[y * pTileMap->m_Width + x].m_Index;
-				if(Index == TILE_OLDLASER)
-				{
-					g_Config.m_SvOldLaser = 1;
-					dbg_msg("front_layer", "found old laser tile");
-				}
-				else if(Index == TILE_NPC)
+				if(Index == TILE_NPC)
 				{
 					m_Tuning.Set("player_collision", 0);
 					dbg_msg("front_layer", "found no collision tile");
