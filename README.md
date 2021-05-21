@@ -1,3 +1,8 @@
+This was my first try at creating a 0.6 and 0.7 compatible ictf server. But it seems i have broken 0.7 support. So I'll probably re-do parts of the changes and keep this as an archive.
+
+
+
+
 [![DDraceNetwork](https://ddnet.tw/ddnet-small.png)](https://ddnet.tw) [![](https://github.com/ddnet/ddnet/workflows/Build/badge.svg)](https://github.com/ddnet/ddnet/actions?query=workflow%3ABuild+event%3Apush+branch%3Amaster)
 
 Our own flavor of DDRace, a Teeworlds mod. See the [website](https://ddnet.tw) for more information.
